@@ -1,14 +1,19 @@
-checkpoint/
-checkpoints/
-datasets/
-logs/
-outputs/
-wandb/
-debug/
-validation_log/
+# 只忽略项目根目录下的训练产物，不影响 verl/ 里的源码目录
+/checkpoint/
+/checkpoints/
+/datasets/
+/logs/
+/outputs/
+/wandb/
+/debug/
+/validation_log/
+
+# 模型权重
 **/*.pt
 **/*.ckpt
 **/*.safetensors
+
+# Python
 __pycache__/
 *.pyc
 .env
