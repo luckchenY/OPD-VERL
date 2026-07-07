@@ -1,0 +1,15 @@
+checkpoint/
+checkpoints/
+datasets/
+logs/
+outputs/
+wandb/
+debug/
+validation_log/
+**/*.pt
+**/*.ckpt
+**/*.safetensors
+__pycache__/
+*.pyc
+.env
+.venv/
