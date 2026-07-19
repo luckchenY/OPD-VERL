@@ -1,0 +1,101 @@
+idx,ground_truth,pred_boxed,correct,answer_present,response_chars,prompt_short,main_model,n_segments_JustRL-1.5B,process_rewards_JustRL-1.5B
+0,6,(none),False,True,20675,"设 a_1,a_2,\cdots,a_{17} 是 1, 2, \cdots, 17 的一个排列，且满足(a_1-a_2)(a_2-a_3)\cdots(a_{16}-a_{17})(a_{17}-a_1)=n^{17}.求正整数 n 的最",JustRL-1.5B,12,[1.0]
+1,228,(none),False,False,20538,"A quadratic polynomial $f(x)$ is called sparse if its degree is exactly 2 , if it has integer coefficients, and if there",JustRL-1.5B,2,[]
+2,32,32,True,True,14644,"In how many ways can the integers from 1 to n be ordered subject to the condition that, except for the first integer on ",JustRL-1.5B,134,"[0.625, -0.25, 0.25, -0.375, 0.5, -0.375, 0.375, -0.125, 0.375]"
+3,617,617,True,True,19465,"A dartboard consists of three concentric circles with radii 4, 6, and 8. Three darts are thrown at the board, sticking a",JustRL-1.5B,140,"[0.375, -0.375, 0.375, -0.25, 0.125, -0.125, 0.625, -0.375, 0.625]"
+4,79,(none),False,True,11059,"Tanya wrote numbers in the form $n^7 - 1$ for $n = 2, 3, \ldots$ and noticed that for $n = 8$, she obtained a number div",JustRL-1.5B,12,[1.0]
+5,2,2,True,True,14355,"Determine the number of pairs $(a,b)$ of real numbers such that $10, a, b, ab$ is an arithmetic progression. Please reas",JustRL-1.5B,68,"[0.125, -0.125, 0.5, -0.25, 0.75]"
+6,42,42,True,True,18846,The smallest three positive proper divisors of an integer $n$ are $d_1 < d_2 < d_3$ and they satisfy $d_1 + d_2 + d_3 = ,JustRL-1.5B,108,"[0.25, -0.125, 0.375, -0.5, 0.5, -0.125, 0.625]"
+7,242,(none),False,True,17051,Let $ f(n)$ be the number of times you have to hit the $ \sqrt {\ }$ key on a calculator to get a number less than $ 2$ ,JustRL-1.5B,108,"[0.375, -0.25, 0.125, -0.125, 0.25, -0.375, 1.0]"
+8,405,(none),False,True,18655,"Circles $C_1$ and $C_2$ are externally tangent, and they are both internally tangent to circle $C_3.$ The radii of $C_1$",JustRL-1.5B,44,"[0.375, -0.375, 1.0]"
+9,23,39,False,True,16000,"已知凸五边形 $A B C D E$ 的对角线 $C E$ 分别与对角线 $B D, A D$ 交于点 $F, G$, 若 $B F: F D=5: 4, A G: G D=1: 1, C F: F G: G E=2: 2: 3$, 求 $",JustRL-1.5B,12,[1.0]
+10,120,120,True,True,18684,What is the smallest positive integer that is a multiple of both 30 and 40 but not a multiple of 16? Please reason step ,JustRL-1.5B,412,"[0.125, -0.125, 0.125, -0.125, 0.125, -0.125, 0.125, -0.125, 0.625, -0.25, 0.25, -0.375, 0.5, -0.125, 0.25, -0.125, 0.125, -0.25, 0.375, -0.375, 0.375, -0.125, 0.125, -0.25, 0.25, -0.125, 0.125]"
+11,103,103,True,True,13666,Alex has $75$ red tokens and $75$ blue tokens. There is a booth where Alex can give two red tokens and receive in return,JustRL-1.5B,96,"[0.125, -0.125, 0.25, -0.25, 0.375, -0.25, 0.875]"
+12,725,725,True,True,15339,"Let $\triangle{PQR}$ be a right triangle with $PQ = 90$, $PR = 120$, and $QR = 150$. Let $C_{1}$ be the inscribed circle",JustRL-1.5B,12,[1.0]
+13,71,71,True,True,18782,"设点 $A$ 的坐标为 $(0,3)$, 点 $B, C$ 为圆 $O: x^{2}+y^{2}=25$ 上的两动点, 满足 $\angle B A C=90^{\circ}$.  $\triangle A B C$ 面积的最大值为$\fr",JustRL-1.5B,108,"[0.625, -0.625, 0.75, -0.25, 0.125, -0.25, 0.625]"
+14,12,12,True,True,12170,"Amy works for 36 hours per week for 10 weeks during the summer, making $\$3000$. If she works for 30 weeks during the sc",JustRL-1.5B,68,"[0.5, -0.375, 0.75, -0.375, 0.5]"
+15,2,2,True,True,8981,"The positive integer $m$ is a multiple of $101$, and the positive integer $n$ is a multiple of $63$. Their sum is $2018$",JustRL-1.5B,123,"[0.25, -0.125, 0.125, -0.125, 0.5, -0.375, 0.5, -0.375, 0.625]"
+16,50,50,True,True,15016,"Let $f(n)$ return the number of distinct ordered pairs of positive integers $(a, b)$ such that for each ordered pair, $a",JustRL-1.5B,224,"[0.125, -0.125, 0.125, -0.125, 0.125, -0.125, 0.25, -0.125, 0.5, -0.375, 0.5, -0.25, 0.25, -0.25, 0.5]"
+17,190,190,True,True,13232,"Using the digits $1, 2, 3, 4, 5, 6, 7,$ and $9,$ form $4$ two-digit prime numbers, using each digit only once. What is t",JustRL-1.5B,76,"[0.125, -0.125, 0.5, -0.125, 0.625]"
+18,253,253,True,True,9075,Compute the smallest positive integer $N$ for which $N \cdot 2^{2024}$ is a multiple of $2024$. Please reason step by st,JustRL-1.5B,67,"[0.375, -0.125, 0.375, -0.125, 0.5]"
+19,1438383,(none),False,False,13981,"Find all ordered pairs $(a, b)$ of positive integers for which $$ \frac{1}{a}+\frac{1}{b}=\frac{3}{2018} . $$ Please pro",JustRL-1.5B,2,[]
+20,719,(none),False,True,16958,"Find the number of permutations $(a_1, a_2, a_3, a_4, a_5, a_6)$ of $(1,2,3,4,5,6)$ that satisfy \[\frac{a_1 + 1}{2} \cd",JustRL-1.5B,76,"[0.125, -0.125, 0.375, -0.25, 0.875]"
+21,403,(none),False,False,16093,"Consider the $2015$ integers $n$, from $1$ to $2015$. Determine for how many values of $n$ it is verified that the numbe",JustRL-1.5B,2,[]
+22,1504,(none),False,False,19089,Let $\mathcal{P}_1$ and $\mathcal{P}_2$ be two parabolas with distinct directrices $\ell_1$ and $\ell_2$ and distinct fo,JustRL-1.5B,2,[]
+23,41,41,True,True,15643,A right circular cylinder with its diameter equal to its height is inscribed in a right circular cone. The cone has diam,JustRL-1.5B,12,[1.0]
+24,0,0,True,True,18995,Let \( n \) be a non-negative integer. Define the *decimal digit product* \( D(n) \) inductively as follows:  - If \( n ,JustRL-1.5B,76,"[0.125, -0.125, 0.5, -0.25, 0.75]"
+25,8,8,True,True,13035,The equation $\sin^2 x + \sin^2 2x + \sin^2 3x + \sin^2 4x = 2$ can be reduced to the equivalent equation \[\cos ax \cos,JustRL-1.5B,70,"[0.75, -0.375, 0.625, -0.375, 0.375]"
+26,2034,(none),False,False,18437,"Let $x_1, x_2, \dots, x_{100}$ be real numbers such that $|x_1| = 63$ and $|x_{n+1}| = |x_n + 1|$ for $n = 1, 2, \dots, ",JustRL-1.5B,2,[]
+27,7,(none),False,True,21012,The addition below is incorrect. What is the largest digit that can be changed to make the addition correct?  \[ \begin{,JustRL-1.5B,12,[1.0]
+28,4,(none),False,True,17848,"Two real numbers $x$ and $y$ are chosen at random in the interval (0,1) with respect to the uniform distribution. What i",JustRL-1.5B,12,[1.0]
+29,31,31,True,True,16447,"The prime numbers $a$, $b$, and $c$ satisfy the equation $a + b^2 = 4c^2$. Determine the sum of all possible values of $",JustRL-1.5B,76,"[0.125, -0.125, 0.75, -0.625, 0.875]"
+30,41,41,True,True,14186,Let $x$ be the minimal root of the equation $x^2 - 4x + 2 = 0$. Find the first two digits after the decimal point of the,JustRL-1.5B,44,"[0.25, -0.25, 1.0]"
+31,5,(none),False,True,19250,"设 $O$ 是 $\triangle A B C$ 内一点, 满足 $S_{\triangle O A B}: S_{\triangle O B C}: S_{\triangle O C A}=4: 3: 2, \overrightarro",JustRL-1.5B,140,"[0.25, -0.25, 0.125, -0.125, 0.125, -0.125, 0.25, -0.125, 0.875]"
+32,35,35,True,True,14239,"On the party, every boy gave $1$ candy to every girl, and every girl gave $1$ candy to every boy. Then every boy ate $2$",JustRL-1.5B,68,"[0.5, -0.375, 0.625, -0.375, 0.625]"
+33,107,107,True,True,12792,"Let $y_0$ be chosen randomly from $\{0, 50\}$, let $y_1$ be chosen randomly from $\{40, 60, 80\}$, let $y_2$ be chosen r",JustRL-1.5B,72,"[0.5, -0.25, 0.25, -0.375, 0.875]"
+34,20160,3780,False,False,22908,How many ways are there to put 9 differently colored beads on a $3\times3$ grid if the purple bead and the green bead ca,JustRL-1.5B,2,[]
+35,89,89,True,True,12109,"A triangle has vertices $P=(-8,5)$, $Q=(-15,-19)$, and $R=(1,-7)$. The equation of the bisector of $\angle P$ can be wri",JustRL-1.5B,96,"[0.25, -0.25, 0.375, -0.25, 0.625, -0.125, 0.375]"
+36,280,376,False,False,25959,"A rectangular storage bin measures $10$ feet by $12$ feet, is $3$ feet tall, and sits on a flat plane. A pile of dirt is",JustRL-1.5B,2,[]
+37,10,10,True,True,9635,"已知正实数 $x, y$ 满足: $\frac{1}{x+3 y}+\frac{1}{2 x+y}=1$, 则 $x+y$ 的最小值是 \( \frac{3+2\sqrt{2}}{5} \) 的形式。请给出 \( m + n + k \) ",JustRL-1.5B,39,"[1.0, -0.125, 0.125]"
+38,2,(none),False,True,15483,"Consider the polynomial $f(x) = ax^2 + bx + c$, with degree less than or equal to 2.  When $f$ varies subject to the con",JustRL-1.5B,12,[1.0]
+39,4,4,True,True,9664,"How many pairs of integers \((x, y)\) are there such that \(2x + 5y = xy - 1\)? Please reason step by step, and put your",JustRL-1.5B,151,"[0.125, -0.125, 0.25, -0.25, 0.75, -0.625, 0.625, -0.125, 0.375, -0.125, 0.125]"
+40,673,(none),False,False,19985,"Let $f:\{1,2,\dots,2019\}\to\{-1,1\}$ be a function, such that for every $k\in\{1,2,\dots,2019\}$, there exists an $\ell",JustRL-1.5B,2,[]
+41,37,37,True,True,14350,"The Tigers beat the Sharks $2$ out of the first $3$ times they played. They then played $N$ more times, and the Sharks e",JustRL-1.5B,44,"[0.875, -0.375, 0.5]"
+42,22,(none),False,True,18833,"Find the number of subsets of $\{1,3,5,7,9,11,13,15,17,19\}$ where the elements in the subset add to $49$. Please reason",JustRL-1.5B,12,[1.0]
+43,21,21,True,True,11416,"To promote her school's annual Kite Olympics, Genevieve makes a small kite and a large kite for a bulletin board display",JustRL-1.5B,40,"[0.375, -0.375, 1.0]"
+44,90,(none),False,False,24544,"由数字 $1,2, \cdots, 6$ 组成无重复数字的六位数 $N=\overline{a_{1} a_{2} \cdots a_{6}}$ ，满足条件 $\left|a_{k+1}-a_{k}\right| \neq 1$ $(k \",JustRL-1.5B,2,[]
+45,4,4,True,True,11335,"For how many positive integers $x$ is $x^2 + 4x + 4$ between 10 and 50? Please reason step by step, and put your final a",JustRL-1.5B,96,"[0.25, -0.125, 0.5, -0.5, 0.75, -0.375, 0.5]"
+46,2,(none),False,True,28369,"Convex polygons \(P_1\) and \(P_2\) are drawn in the same plane with \(n_1\) and \(n_2\) sides, respectively, where \(n_",JustRL-1.5B,204,"[0.25, -0.25, 0.125, -0.125, 0.25, -0.125, 0.5, -0.5, 0.875, -0.25, 0.25, -0.25, 0.25]"
+47,4,3,False,False,29711,"设平面上有 $n(n \geqslant 4)$ 个点 $V_{1}, V_{2}, \cdots$, $V_{n}$ ，任意三点不共线，某些点之间连有线段。把标号分别为 $1,2, \cdots, n$ 的 $n$ 枚棋子放置在这 $n$",JustRL-1.5B,2,[]
+48,20,20,True,True,9272,"若正实数 a,b 满足 a^{\lg b}=2,a^{\lg a}\cdot b^{\lg b}=5，则 (ab)^{\lg ab} 的值为__________. Please reason step by step, and put yo",JustRL-1.5B,39,"[0.25, -0.25, 1.0]"
+49,20,(none),False,True,20779,There are $100$ countries participating in an olympiad. Suppose $n$ is a positive integer such that each of the $100$ co,JustRL-1.5B,12,[1.0]
+50,945,945,True,True,18300,Lines $l_1^{}$ and $l_2^{}$ both pass through the origin and make first-quadrant angles of $\frac{\pi}{70}$ and $\frac{\,JustRL-1.5B,44,"[0.75, -0.375, 0.625]"
+51,20,(none),False,True,20392,"Let $S$ be the set of points $(a,b)$ in the coordinate plane, where each of $a$ and $b$ may be $-1$, $0$, or $1$. Find t",JustRL-1.5B,172,"[0.25, -0.25, 0.25, -0.125, 0.625, -0.125, 0.375, -0.5, 0.375, -0.125, 0.25]"
+52,180,20,False,False,17356,"Let $ABC$ be a triangle with $AB=7$, $BC=9$, and $CA=4$. Let $D$ be the point such that $AB \parallel CD$ and $CA \paral",JustRL-1.5B,2,[]
+53,17,17,True,True,12420,"已知 \(x 、 y\) 都在区间 \((-2,2)\) 内, 且 \(x y=-1\), 求函数 \(u=\frac{4}{4-x^{2}}+\frac{9}{9-y^{2}}\) 的最小值。答案的形式为 \(\frac{k}{m}\)，",JustRL-1.5B,12,[1.0]
+54,9,9,True,True,8589,"Let \(AB\) be a segment of length \(26\), and let points \(C\) and \(D\) be located on \(AB\) such that \(AC=1\) and \(A",JustRL-1.5B,39,"[0.625, -0.125, 0.5]"
+55,480,480,True,True,12038,A stairway with three steps has three risers that are each 8 inches high and three treads that are each 10 inches deep. ,JustRL-1.5B,96,"[0.25, -0.25, 0.125, -0.125, 0.5, -0.25, 0.75]"
+56,57,60,False,True,26856,"The Benton Youth Soccer Team has 20 players on the team, including reserves. Of these, three are goalies. Today, the tea",JustRL-1.5B,12,[1.0]
+57,24,24,True,True,8378,"The four faces of a tetrahedral die are labelled $0, 1, 2,$ and $3,$ and the die has the property that, when it is rolle",JustRL-1.5B,39,"[0.875, -0.375, 0.5]"
+58,150,(none),False,True,19170,"Using $600$ cards, where $200$ of them have the number $5$, $200$ have the number $2$, and the other $200$ have the numb",JustRL-1.5B,12,[1.0]
+59,120,120,True,True,14149,"Let $\overline{AD}$ be a diameter of a circle. Let point $B$ be on the circle, point $C$ on $\overline{AD}$ such that $A",JustRL-1.5B,12,[1.0]
+60,269,(none),False,True,14311,"Determine the smallest positive prime $p$ which satisfies the congruence $p + p^{-1} \equiv 25 \pmod{143}$. Here, $p^{-1",JustRL-1.5B,12,[1.0]
+61,220,(none),False,False,17067,"在平面直角坐标系 $x O y$ 中, 曲线 $C_{1}: y^{2}=4 x$, 曲线 $C_{2}:(x-4)^{2}+y^{2}=8$. 经过 $C_{1}$上一点 $P$ 作一条倾斜角为 $45^{\circ}$ 的直线 $l$,",JustRL-1.5B,2,[]
+62,1,1,True,True,15741,Let $\alpha$ and $\beta$ be angles such that \[\frac{\cos \alpha}{\cos \beta} + \frac{\sin \alpha}{\sin \beta} = -1.\]Fi,JustRL-1.5B,76,"[0.375, -0.375, 1.0, -0.375, 0.375]"
+63,9,11,False,False,3219,"A palindrome is a word that reads the same backwards as forwards, such as ""eye"", ""race car"", and ""qwertyytrewq"".   How m",JustRL-1.5B,2,[]
+64,16,(none),False,True,24747,"Compute the number of ordered pairs of non-negative integers $(x, y)$ which satisfy $x^2 + y^2 = 32045.$ Please reason s",JustRL-1.5B,76,"[0.375, -0.125, 0.125, -0.375, 1.0]"
+65,2,(none),False,True,20987,"Five friends sat in a movie theater in a row containing $5$ seats, numbered $1$ to $5$ from left to right. (The directio",JustRL-1.5B,12,[1.0]
+66,906,(none),False,True,15951,"Find the sum of the values of $x$ such that $\cos^3 3x+ \cos^3 5x = 8 \cos^3 4x \cos^3 x$, where $x$ is measured in degr",JustRL-1.5B,44,"[0.125, -0.125, 1.0]"
+67,8,8,True,True,9777,"If triangle $ABC$ has sides of length $AB = 6,$ $AC = 5,$ and $BC = 4,$ then calculate \[\frac{\cos \frac{A - B}{2}}{\si",JustRL-1.5B,39,"[0.25, -0.25, 1.0]"
+68,100,(none),False,True,16531,"Last year Isabella took $7$ math tests and received $7$ different scores, each an integer between $91$ and $100$, inclus",JustRL-1.5B,12,[1.0]
+69,2,(none),False,True,14860,"We define a number as ""funny"" if it is divisible by the sum of its digits plus one. For example, since $1 + 2 + 1 \mid 1",JustRL-1.5B,12,[1.0]
+70,7,7,True,True,12703,"If $\mathbf{a}$ and $\mathbf{b}$ are two unit vectors, with an angle of $\frac{\pi}{3}$ between them, then compute the v",JustRL-1.5B,96,"[0.25, -0.25, 0.75, -0.75, 0.125, -0.125, 1.0]"
+71,129,(none),False,False,19223,"In an abandoned chemistry lab, Gerome found a two-pan balance scale and three 1-gram weights, three 5-gram weights, and ",JustRL-1.5B,2,[]
+72,160,153,False,False,20780,"Vasya has $n$ candies of several types, where $n > 145$. It is known that for any group of at least 145 candies, there i",JustRL-1.5B,2,[]
+73,289,289,True,True,10142,In trapezoid $ABCD$ the lengths of the bases $AB$ and $CD$ are 8 and 17 respectively. The legs of the trapezoid are exte,JustRL-1.5B,40,"[0.25, -0.125, 0.875]"
+74,10000,10000,True,True,11179,Find the product of all positive odd integers less than \(10000\). The original answer is in the format \(\frac{10000!}{,JustRL-1.5B,124,"[0.25, -0.125, 0.375, -0.25, 0.625, -0.25, 0.25, -0.75, 0.875]"
+75,2,2,True,True,8399,Consider the following function $g(x)$ defined as\[(x^{2^{2008}-1}-1)g(x) = (x+1)(x^2+1)(x^4+1)\cdots (x^{2^{2007}}+1) -,JustRL-1.5B,39,"[0.125, -0.125, 1.0]"
+76,2022,2022,True,True,13043,"设数列 \{a_n\} 满足：a_1=1011，且对任意正整数 n，均有 a_1+a_2+\cdots+a_n=n^2a_n, 则 a_{2021}=__________.原始的答案是\frac{m}{n}的形式，其中m、n是互质的。请给出",JustRL-1.5B,44,"[1.0, -0.75, 0.75]"
+77,2,(none),False,True,15064,"已知 $f_{n}(x)=x^{n+1}-2 x^{n}+3 x^{n-1}-2 x^{n-2}+3 x-3, n \in N^{*}, n \geq 4$. 记 $f_{n}(x)=0$ 的实根 个数为 $a_{n}$, 求 $\max ",JustRL-1.5B,76,"[0.375, -0.125, 0.625, -0.25, 0.375]"
+78,49,49,True,True,12063,"In a circle, parallel chords of lengths 2, 3, and 4 determine central angles of $\alpha$, $\beta$, and $\alpha + \beta$ ",JustRL-1.5B,68,"[0.25, -0.25, 0.625, -0.125, 0.5]"
+79,5,5,True,True,10626,Suppose $d$ is a digit. For how many values of $d$ is $2.00d5 > 2.005$? Provide your answer as an integer. Please reason,JustRL-1.5B,152,"[0.125, -0.125, 0.125, -0.125, 0.125, -0.125, 0.25, -0.125, 0.375, -0.5, 1.0]"
+80,509040,(none),False,False,30031,"有 2018 名学生围成一圈. 称一个同学是优秀的，如果他两边站着的人和自己的性别都不同. 求优秀的男生数与优秀的女生数的平方差的最大值. Please reason step by step, and put your final ans",JustRL-1.5B,2,[]
+81,999989991,(none),False,False,17210,"称正整数 n 是""有趣的""，如果对任意 1\leq k\leq9，都有\left\{\df{n}{10^k}\right\}>\df{n}{10^{10}}.求有趣的正整数的个数. Please reason step by step, a",JustRL-1.5B,2,[]
+82,100,(none),False,True,17136,"Andrew has a four-digit number whose last digit is $2$. Given that this number is divisible by $9$, determine the number",JustRL-1.5B,44,"[0.125, -0.125, 1.0]"
+83,8,8,True,True,21560,"A parallelogram has $3$ of its vertices at $(1, 2)$, $(3,8)$, and $(4, 1)$. Compute the sum of the possible $x$-coordina",JustRL-1.5B,140,"[0.25, -0.25, 0.125, -0.125, 1.0, -0.75, 0.125, -0.125, 0.75]"
+84,60,60,True,True,10318,"The target below is made up of concentric circles with diameters $4$, $8$, $12$, $16$, and $20$. The area of the dark re",JustRL-1.5B,12,[1.0]
+85,144,144,True,True,16530,"How many nonempty subsets $B$ of $\{0, 1, 2, 3, \cdots, 12\}$ have the property that the number of elements in $B$ is eq",JustRL-1.5B,164,"[0.125, -0.125, 0.125, -0.125, 0.875, -0.875, 0.375, -0.375, 0.625, -0.25, 0.625]"
+86,20201,20201,True,True,8373,"Figures $0$, $1$, $2$, and $3$ consist of $1$, $5$, $13$, and $25$ nonoverlapping squares, respectively. If the pattern ",JustRL-1.5B,39,"[0.75, -0.625, 0.875]"
+87,4,8,False,True,25393,Let $n$ be a positive integer. Let $B_{n}$ be the set of all binary strings of length $n$. For a binary string $s_{1} s_,JustRL-1.5B,12,[1.0]
+88,7,(none),False,True,18333,"Bored of working on her computational linguistics thesis, Erin enters some three-digit integers into a spreadsheet, then",JustRL-1.5B,12,[1.0]
+89,6,6,True,True,11274,Let $P$ be a point on the line \[\begin{pmatrix} 3 \\ -1 \\ 2 \end{pmatrix} + t \begin{pmatrix} 2 \\ -2 \\ 1 \end{pmatri,JustRL-1.5B,68,"[0.125, -0.125, 0.625, -0.625, 1.0]"
+90,37,37,True,True,14973,"Gary purchased a large beverage, but only drank $m/n$ of it, where $m$ and $n$ are relatively prime positive integers. I",JustRL-1.5B,74,"[0.125, -0.125, 0.625, -0.5, 0.875]"
+91,1593,(none),False,True,18604,"Determine the minimum value of \( n \) such that in a group of 1991 participants, where each participant knows at least ",JustRL-1.5B,12,[1.0]
+92,416,(none),False,False,16190,Find the sum of all positive integers $n$ with the following properties:  - $n$ is not divisible by any primes larger th,JustRL-1.5B,2,[]
+93,0,0,True,True,15353,"记 [ $x$ ] 表示不超过实数 $x$ 的最大整数. 设 $x_{1}, x_{2}, \\cdots, x_{n} \in \\mathbf{R}$, 且 $\left[x_{1}\right],\left[x_{2}\right],",JustRL-1.5B,12,[1.0]
+94,198,198,True,True,18786,We write one of the numbers $0$ and $1$ into each unit square of a chessboard with $40$ rows and $7$ columns. If any two,JustRL-1.5B,190,"[0.25, -0.25, 0.125, -0.125, 0.125, -0.125, 0.125, -0.125, 0.25, -0.125, 0.5, -0.5, 0.875]"
+95,135,135,True,True,13664,"We have triangle $\triangle ABC$ where $AB = AC$ and $AD$ is an altitude. Meanwhile, $E$ is a point on $AC$ such that $A",JustRL-1.5B,72,"[0.125, -0.125, 0.375, -0.25, 0.875]"
+96,16,16,True,True,10246,"At a math competition, a team of $8$ students has $2$ hours to solve $30$ problems. If each problem needs to be solved b",JustRL-1.5B,96,"[0.625, -0.375, 0.375, -0.375, 0.25, -0.125, 0.625]"
+97,4,4,True,True,9207,"If we define $\otimes(a,b,c)$ by \begin{align*} \otimes(a,b,c) = \frac{\max(a,b,c)- \min(a,b,c)}{a+b+c-\min(a,b,c)-\max(",JustRL-1.5B,11,[1.0]
+98,3,(none),False,True,10318,"用 [x] 表示不超过 x 的最大整数. 设数列 \{x_n\} 满足：x_1=1, x_{n+1}=4x_n+[\sqrt{11}x_n]. 求 x_{2024} 的个位数. Please reason step by step, and",JustRL-1.5B,12,[1.0]
+99,21,21,True,True,19362,"已知 \triangle A B C 为椭圆 \frac{x^{2}}{9}+\frac{y^{2}}{4}=1 的内接三角形，且 A B 过点 P(1,0) ，则 \triangle A B C 的面积的最大值为 \frac{m\sqrt",JustRL-1.5B,44,"[0.75, -0.5, 0.75]"

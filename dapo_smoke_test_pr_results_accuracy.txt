@@ -1,0 +1,13 @@
+=== DAPO smoke test PR 结果汇总 ===
+模型: DeepSeek-R1-Distill-Qwen-1.5B
+样本数: 100
+answer_present (生成了 \\boxed): 72 (72.00%)
+  被截断/没出答案: 28 (28.00%)
+correct (答案正确): 35 (35.00%)
+  -> 在出了答案的题里正确率: 35/72 = 48.61%
+
+平均 response_chars: 15845
+被截断题的平均 response_chars: 16854
+有答案题的平均 response_chars: 15453
+
+CSV: /data/chenyang/OPD/dapo_smoke_test_pr_results_simple.csv

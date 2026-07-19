@@ -619,8 +619,18 @@ def compute_process_rewards_for_batch(batch: Any, tokenizer: Any, config: Any, a
         bounds = bounds[: cfg.max_segments]
         raw_prompt = _get_raw_prompt(batch, i)
         data_source, gt = _extract_data_source_and_gt(batch, i)
+        # `answer_present` is a cheap substring precheck used only to decide
+        # whether to invest in K-fold PRM continuation scoring (skip_pr gate
+        # below). It must NOT be used as the final-segment accuracy: short
+        # integer GTs (DAPO is all integers) almost always appear as
+        # intermediate values in a long CoT even when the model ultimately
+        # boxes a wrong answer, which would inflate final_acc to 1.0 and
+        # poison the last segment's process reward. Use the real reward
+        # function (boxed extraction + mathd/sympy grading) instead, the same
+        # one used to score PRM continuations, so the final-segment
+        # endpoint_acc is consistent with the per-segment ones.
         answer_present = _answer_string_present(response_text, gt)
-        final_acc = 1.0 if answer_present else 0.0
+        final_acc = _score_completion(raw_reward_fn, data_source, response_text, gt)
         rec = {
             "response_text": response_text,
             "segment_bounds": bounds,

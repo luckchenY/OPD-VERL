@@ -1,0 +1,14 @@
+=== DAPOTEACHER smoke test PR 结果汇总 ===
+模型(main_response_model): JustRL-1.5B
+PRM 续写模型: JustRL-1.5B
+样本数: 100
+answer_present (生成了 \boxed): 82 (82.00%)
+  被截断/没出答案: 18 (18.00%)
+correct (答案正确): 54 (54.00%)
+  -> 出了答案的题里正确率: 54/82 = 65.85%
+
+response_chars: mean=15955
+  被截断题 mean chars: 19573
+  有答案题 mean chars: 15161
+
+CSV: /data/chenyang/OPD/dapoteacher_smoke_test_pr_results_simple.csv

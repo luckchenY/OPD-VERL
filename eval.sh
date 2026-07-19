@@ -3,7 +3,7 @@ set -e
 
 cd /data/chenyang/OPD
 export PYTHONPATH=/data/chenyang/OPD/verl
-export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-1}
+export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-6}
 export NCCL_DEBUG=WARN
 export TOKENIZERS_PARALLELISM=true
 
@@ -36,9 +36,9 @@ stop_ray_on_visible_gpus() {
 }
 stop_ray_on_visible_gpus
 
-MODEL="${1:-/data/chenyang/OPD/checkpoint/token_reward_direct_OpenThoughts3_DeepSeek-R1-Distill-Qwen-1.5B_Skywork-OR1-7B_7168-T_1.0-Tch_1.0-n_4-mbs_4-topk_16-topk_strategy_only_stu-rw_student_p-2026-06-27_02-14-07/global_step_550/actor/merged_hf_550}"
-BENCH="${2:-AIME24}"   # AIME24 / AIME25 / AMC23
-STEP="${3:-1250}"
+MODEL="${1:-/data/chenyang/checkpoint/token_reward_direct_OpenThoughts3_DeepSeek-R1-Distill-Qwen-1.5B_Skywork-OR1-7B_7168-T_1.0-Tch_1.0-n_4-mbs_4-topk_16-topk_strategy_only_stu-rw_student_p-2026-06-27_02-14-07/global_step_200/merged_hf}"
+BENCH="${2:-AIME25}"   # AIME24 / AIME25 / AMC23
+STEP="${3:-200}"
 
 OUT="eval_outputs/${BENCH}_${STEP}.parquet"
 mkdir -p eval_outputs
@@ -58,8 +58,8 @@ echo "Step 1/2: generation (Ray + vLLM init may take 2-5 min with no new logs)"
     data.path=datasets/test_data/${BENCH}/test.parquet \
     data.prompt_key=prompt \
     data.output_path=$OUT \
-    data.batch_size=4 \
-    data.n_samples=1 \
+    data.batch_size=64 \
+    data.n_samples=8 \
     model.path="$MODEL" \
     rollout.name=vllm \
     rollout.temperature=0.6 \

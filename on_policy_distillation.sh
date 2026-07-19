@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -x
-
+ray stop --force
 # Configure logging when running outside SBATCH.
 if [ -z "$SLURM_JOB_ID" ]; then
     # Create the log directory and file for local runs.
@@ -18,9 +18,9 @@ fi
 
 export RAY_memory_usage_threshold=0.99
 # export CUDA_LAUNCH_BLOCKING=1
-export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,4,5,6,7}
+export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,3,4,5,6,7}
 export PYTHONUNBUFFERED=1
-export PROJECT_NAME='OPDqwen2.5distill-klconsistency' # TODO
+export PROJECT_NAME='OPDqwen2.5distill-prefix' # TODO
 export TORCH_NCCL_BLOCKING_WAIT=1
 export NCCL_TIMEOUT_SECONDS=7200
 export NCCL_TIMEOUT=7200
@@ -31,18 +31,13 @@ export ADV_ESTIMATOR=token_reward_direct
 # export ADV_ESTIMATOR=token_grpo
 # export ADV_ESTIMATOR=grpo
 export GRPO_OUTCOME_WEIGHT=1.0
-# export ADV_ESTIMATOR=token_grpo
-# Swanlab setting used to continue exp  
-# export SWANLAB_RESUME=must
-# export SWANLAB_RUN_ID="jri5qia6iy67v7su0zjsv"
-
 
 # DeepMath-103K
 export MAX_PROMPT_LENGTH=${MAX_PROMPT_LENGTH:-1024}
 export MAX_RESP_LENGTH=${MAX_RESP_LENGTH:-7168}  # TODO: 31744 /15360 / 7168 / 3072 / 5120
 export MAX_VAL_RESP_LENGTH=${MAX_VAL_RESP_LENGTH:-7168} # TODO: 15360 / 7168 / 3072
-export MAX_MODEL_LEN=$(( MAX_RESP_LENGTH + MAX_PROMPT_LENGTH > MAX_VAL_RESP_LENGTH + MAX_PROMPT_LENGTH ? MAX_RESP_LENGTH + MAX_PROMPT_LENGTH : MAX_VAL_RESP_LENGTH + MAX_PROMPT_LENGTH ))
-export MINI_BATCH_SIZE=${MINI_BATCH_SIZE:-4} # TODO: 1 / 8 / 16 / 32 / 64 (default 64)
+export MAX_MODEL_LEN=$((MAX_RESP_LENGTH + MAX_PROMPT_LENGTH > MAX_VAL_RESP_LENGTH + MAX_PROMPT_LENGTH ? MAX_RESP_LENGTH + MAX_PROMPT_LENGTH : MAX_VAL_RESP_LENGTH + MAX_PROMPT_LENGTH ))
+export MINI_BATCH_SIZE=${MINI_BATCH_SIZE:-66} # TODO: 1 / 8 / 16 / 32 / 64 (default 64)
 export TEMPERATURE=${TEMPERATURE:-1.0} # TODO: 0.6 / 0.8 / 1.0 / 1.2 (default 1.0)
 export TEACHER_TEMPERATURE=${TEACHER_TEMPERATURE:-1.0} # Teacher logits temperature (default 1.0, no scaling)
 export REPETITION_PENALTY=${REPETITION_PENALTY:-1.0} # TODO: 1.0 / 1.1 / 1.2 (default 1.0, no penalty)
@@ -52,10 +47,10 @@ export ROLLOUT_CALCULATE_LOG_PROBS=${ROLLOUT_CALCULATE_LOG_PROBS:-False}
 export TOP_K_STRATEGY=${TOP_K_STRATEGY:-"only_stu"} # "only_stu" or "only_tch" or "intersection" or "union" or "union-intersection"
 export REWARD_WEIGHT_MODE=${REWARD_WEIGHT_MODE:-"student_p"} # "student_p" or "teacher_p" or "none"
 export OPD_CONSISTENCY_ENABLE=${OPD_CONSISTENCY_ENABLE:-True}
-export OPD_CONSISTENCY_TOP_PERCENT_RESPONSES=${OPD_CONSISTENCY_TOP_PERCENT_RESPONSES:-60}
-export OPD_CONSISTENCY_MASK_TOP_PERCENT_SEGMENTS=${OPD_CONSISTENCY_MASK_TOP_PERCENT_SEGMENTS:-20}
-export OPD_CONSISTENCY_MIN_SEGMENTS=${OPD_CONSISTENCY_MIN_SEGMENTS:-5}
-export OPD_SEGMENT_MIN_SENTENCES=${OPD_SEGMENT_MIN_SENTENCES:-5}
+export OPD_CONSISTENCY_TOP_PERCENT_RESPONSES=${OPD_CONSISTENCY_TOP_PERCENT_RESPONSES:-100}
+export OPD_CONSISTENCY_MASK_TOP_PERCENT_SEGMENTS=${OPD_CONSISTENCY_MASK_TOP_PERCENT_SEGMENTS:-30}
+export OPD_CONSISTENCY_MIN_SEGMENTS=${OPD_CONSISTENCY_MIN_SEGMENTS:-3}
+export OPD_SEGMENT_MIN_SENTENCES=${OPD_SEGMENT_MIN_SENTENCES:-3}
 export OPD_CONSISTENCY_DROP_LOW=${OPD_CONSISTENCY_DROP_LOW:-True}
 export OPD_PROCESS_REWARD_ENABLE=${OPD_PROCESS_REWARD_ENABLE:-$OPD_CONSISTENCY_ENABLE}
 export OPD_PROCESS_REWARD_K_EVAL=${OPD_PROCESS_REWARD_K_EVAL:-8}
@@ -66,7 +61,7 @@ export OPD_PROCESS_REWARD_MAX_TOKENS=${OPD_PROCESS_REWARD_MAX_TOKENS:-300}
 export OPD_PROCESS_REWARD_MAX_PROMPT_LENGTH=${OPD_PROCESS_REWARD_MAX_PROMPT_LENGTH:-8192}
 export OPD_PROCESS_REWARD_MAX_TOTAL_LENGTH=${OPD_PROCESS_REWARD_MAX_TOTAL_LENGTH:-8192}
 export OPD_PROCESS_REWARD_BATCH_SIZE=${OPD_PROCESS_REWARD_BATCH_SIZE:-64}
-export GPU_MEMORY_UTILIZATION=${GPU_MEMORY_UTILIZATION:-0.8}
+export GPU_MEMORY_UTILIZATION=${GPU_MEMORY_UTILIZATION:-0.5}
 export ACTOR_PPO_MICRO_BATCH_SIZE_PER_GPU=${ACTOR_PPO_MICRO_BATCH_SIZE_PER_GPU:-1}
 # export LR=${LR:-1e-6}
 # export LR_SCHEDULER=${LR_SCHEDULER:-constant}
@@ -80,19 +75,22 @@ export LOSS_AGG_MODE=${LOSS_AGG_MODE:-"token-mean"} # TODO: "token-mean" / "seq-
 
 # TODO: qwen3_1p7b_base / qwen3_1p7b / llama31_8b_base / llama31_8b_inst / qwen3_8b_base / qwen3_8b / qwen25_1p5b_base / qwen25_1p5b_inst / qwen25_7b_base / qwen25_7b_inst / qwen25_math_7b_base / qwen25_math_7b_inst / qwen25_math_1p5b_base / qwen25_math_1p5b_inst / distill_r1_1p5b / olmo2_1124_7b_base / olmo2_1124_7b_sft / olmo2_1124_7b_inst / llama32_3b_inst
 # export EXPERIMENT_NAME=grpo_${TASK}_llama31_tulu3_8b_sft_8k-T_${TEMPERATURE}-n_${N_RESPONSES}-kl_${USE_KL}-mbs_${MINI_BATCH_SIZE}-${REWARD_TYPE}-$(date +%Y-%m-%d_%H-%M-%S)
-
+export PROJECT_ROOT=/data/chenyang/OPD
+export TRAIN_DATASET=$PROJECT_ROOT/datasets/dapo-math-17k-processed.parquet
+export TEST_DATA_DIR=$PROJECT_ROOT/datasets/test_data
+export PROJECT_PATH=$PROJECT_ROOT/checkpoint
 # export TRAIN_DATASET=datasets/DAPO-Math-17k/data/dapo-math-17k-10percent.parquet
-# export TRAIN_DATASET=datasets/OpenThoughts3-1.2M/OpenThoughts3_opd.parquet
+# export TRAIN_DATASET=datasets/OpenThoughts3_opd.parquet
 # export TRAIN_DATASET=datasets/OpenThoughts3-1.2M/sampled_complement_30k.parquet
 # export TRAIN_DATASET=datasets/DeepMath-103K/verl_format/train_filtered_sampled.parquet
-export TRAIN_DATASET=${TRAIN_DATASET:-datasets/OpenThought3-Qwen3-4B/verl_train_with_gt.parquet}
+# export TRAIN_DATASET=${TRAIN_DATASET:-datasets/OpenThought3-Qwen3-4B/verl_train_with_gt.parquet}
 # export TRAIN_DATASET=datasets/Skywork-OR1-RL-Data/data/math-00000-of-00001.parquet
 # export TRAIN_DATASET=datasets/Skywork-OR1-RL-Data/filtered/math-1p5b-filtered-diff-max8.parquet
 # export TRAIN_DATASET=datasets/DAPO-Math-17k-Processed/DAPO-Math.parquet
 # export TRAIN_DATASET=datasets/skywork/train_7b_math.parquet
 # export TRAIN_DATASET=datasets/DAPO-Math-17k-Processed/DAPO-Math_part2.parquet
 # export TRAIN_DATASET=datasets/OpenThoughts3-1.2M/verl_format/train.parquet
-export TRAIN_DATASET_NAME=${TRAIN_DATASET_NAME:-OpenThoughts3}
+export TRAIN_DATASET_NAME=${TRAIN_DATASET_NAME:-DAPO}
 export TRAIN_MAX_SAMPLES=${TRAIN_MAX_SAMPLES:--1}
 # export TRAIN_DATASET_NAME=POLARIS-4B-S1
 # export TRAIN_DATASET_NAME=Skywork-OR1-RL-Data
@@ -102,7 +100,7 @@ export TRAIN_MAX_SAMPLES=${TRAIN_MAX_SAMPLES:--1}
 # export TRAIN_DATASET_NAME=OpenThoughts3-1.2M-opd
 # export TRAIN_DATASET_NAME=OpenThoughts3-1.2M-30k
 
-export TEST_DATA_DIR=datasets/test_data
+export TEST_DATA_DIR=$PROJECT_ROOT/datasets/test_data
 # TRAIN_DATASET=${TRAIN_FILE:-["$DATA_DIR/$TASK/train_${SAMPLE_SIZE}.parquet"]}
 TEST_DATASET=${TEST_FILE:-["$TEST_DATA_DIR/AIME25/test.parquet", "$TEST_DATA_DIR/AMC23/test.parquet", "$TEST_DATA_DIR/AIME24/test.parquet"]}
 # TEST_DATASET=${TEST_FILE:-["$TEST_DATA_DIR/AIME24/test.parquet"]}
@@ -137,21 +135,36 @@ export ACTOR_MODEL_NAME=$(basename "$ACTOR_MODEL_PATH")
 # export REWARD_MODEL_PATH=model/Skywork-OR1-Math-7B
 # export REWARD_MODEL_PATH=model/Polaris-4B-Preview
 # export REWARD_MODEL_PATH=model/DeepSeek-R1-Distill-Qwen-14B
-export REWARD_MODEL_PATH=/data/chenyang/models/Skywork-OR1-7B
+export REWARD_MODEL_PATH=/data/chenyang/models/Skywork-OR1-Math-7B
 export REWARD_MODEL_NAME=$(basename "$REWARD_MODEL_PATH")
 
-export PROJECT_PATH=checkpoint
+export PROJECT_PATH=/data/chenyang/OPD/checkpoint
 export PARALLEL_SIZE=1
 _RUN_NAME_SUFFIX=${ADV_ESTIMATOR}_${TRAIN_DATASET_NAME}_${ACTOR_MODEL_NAME}_${REWARD_MODEL_NAME}_${MAX_RESP_LENGTH}-T_${TEMPERATURE}-Tch_${TEACHER_TEMPERATURE}-n_${N_RESPONSES}-mbs_${MINI_BATCH_SIZE}-topk_${LOG_PROB_TOP_K}-topk_strategy_${TOP_K_STRATEGY}-rw_${REWARD_WEIGHT_MODE}
+# Resume mode: "auto" / "disable" / "resume_path"
+# "disable": start from scratch using ACTOR_MODEL_PATH only as model weights (default for retraining)
+# "auto": resume from the latest checkpoint in default_local_dir
+# "resume_path": resume from RESUME_CKPT_DIR
+export RESUME_MODE=${RESUME_MODE:-disable}
+
 # Resume from an existing run: export RESUME_CKPT_DIR=checkpoint/<run_dir>
 if [ -n "$RESUME_CKPT_DIR" ]; then
     export CKPT_PATH="$RESUME_CKPT_DIR"
     export EXPERIMENT_NAME=$(basename "$RESUME_CKPT_DIR")
+    export RESUME_MODE=${RESUME_MODE:-resume_path}
+    export RESUME_FROM_PATH="$RESUME_CKPT_DIR"
     echo "Resuming training from: $CKPT_PATH"
 else
-    export CKPT_PATH=${CKPT_PATH:-${PROJECT_PATH}/${_RUN_NAME_SUFFIX}-$(date +%Y-%m-%d_%H-%M-%S)}
-    export EXPERIMENT_NAME=${EXPERIMENT_NAME:-${_RUN_NAME_SUFFIX}-$(date +%Y-%m-%d_%H-%M-%S)}
+    _TS=$(date +%Y-%m-%d_%H-%M-%S)
+    export CKPT_PATH=${PROJECT_PATH}/${_RUN_NAME_SUFFIX}-${_TS}
+    export EXPERIMENT_NAME=${_RUN_NAME_SUFFIX}-${_TS}
     echo "Starting new training run: $CKPT_PATH"
+fi
+
+# Build resume arguments for the trainer
+RESUME_ARGS="trainer.resume_mode=$RESUME_MODE"
+if [ "$RESUME_MODE" = "resume_path" ]; then
+    RESUME_ARGS="$RESUME_ARGS trainer.resume_from_path=$RESUME_FROM_PATH"
 fi
 export OUTLINES_CACHE_DIR=~/.cache/outlines/$(uuidgen)
 export NCCL_DEBUG=WARN
@@ -178,7 +191,6 @@ if [ "$LR_SCHEDULER" = "cosine" ]; then
     actor_rollout_ref.actor.optim.lr_warmup_steps_ratio=0.03"
 fi
 
-# DEFAULT_PPO_MAX_TOKEN_LEN_PER_GPU=$(( ((MAX_PROMPT_LENGTH + MAX_RESP_LENGTH) > 32768) ? (MAX_PROMPT_LENGTH + MAX_RESP_LENGTH) : 32768))
 export PPO_MAX_TOKEN_LEN_PER_GPU=8192
 echo "PPO_MAX_TOKEN_LEN_PER_GPU: $PPO_MAX_TOKEN_LEN_PER_GPU"
 
@@ -250,18 +262,19 @@ python3 -m verl.trainer.main_ppo \
     reward_model.model.fsdp_config.param_offload=$REWARD_MODEL_PARAM_OFFLOAD \
     +reward_model.model.dtype=$MODEL_DTYPE \
     reward_model.micro_batch_size_per_gpu=1 \
-    custom_reward_function.path="verl/verl/utils/reward_score/ttrl_math/__init__.py" \
+    custom_reward_function.path="/data/chenyang/OPD/verl/verl/utils/reward_score/ttrl_math/__init__.py" \
     custom_reward_function.name=reward_func \
     trainer.val_before_train=False \
-    trainer.log_val_generations=4 \
+    trainer.log_val_generations=6 \
     trainer.logger=['console','wandb'] \
     trainer.project_name=$PROJECT_NAME \
     trainer.experiment_name=$EXPERIMENT_NAME \
+    $RESUME_ARGS \
     trainer.validation_data_dir=validation_log/$EXPERIMENT_NAME \
-    trainer.n_gpus_per_node=4 \
+    trainer.n_gpus_per_node=6 \
     trainer.nnodes=1 \
     trainer.save_freq=50 \
-    trainer.test_freq=1000 \
+    trainer.test_freq=50 \
     trainer.total_epochs=1 \
     trainer.default_local_dir="$CKPT_PATH" \
     trainer.is_plot=$IS_PLOT \

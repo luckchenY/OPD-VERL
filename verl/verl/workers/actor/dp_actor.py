@@ -803,7 +803,12 @@ class DataParallelPPOActor(BasePPOActor):
             select_keys.append("union_top_k_log_probs")
             # now we don't need to store student_top_k_log_probs for union strategy
             if "student_top_k_log_probs" in select_keys:
-                select_keys.remove("student_top_k_log_probs")   
+                select_keys.remove("student_top_k_log_probs")
+
+        # OPD consistency mask: when present, masked segments must be excluded
+        # from the loss-normalization denominator (see response_mask fix below).
+        if "opd_consistency_mask" in data.batch.keys():
+            select_keys.append("opd_consistency_mask")
 
         has_multi_modal_inputs = "multi_modal_inputs" in data.non_tensor_batch.keys()
         non_tensor_select_keys = ["multi_modal_inputs"] if has_multi_modal_inputs else []
@@ -837,6 +842,19 @@ class DataParallelPPOActor(BasePPOActor):
                     response_mask = model_inputs["response_mask"]
                     old_log_prob = model_inputs["old_log_probs"]
                     advantages = model_inputs["advantages"]
+
+                    # OPD consistency mask: zero out masked segments in the
+                    # loss-normalization mask. rm_scores (hence advantages) are
+                    # already 0 on masked tokens, but the loss aggregator
+                    # (masked_mean with token-mean) divides by sum(response_mask);
+                    # if masked tokens still count in the denominator, the
+                    # effective per-token weight on the surviving (active)
+                    # tokens is diluted by the masked segments' length.
+                    # Multiplying response_mask by opd_consistency_mask removes
+                    # those tokens from the denominator so the learned weight
+                    # matches the intended magnitude.
+                    if "opd_consistency_mask" in model_inputs:
+                        response_mask = response_mask * model_inputs["opd_consistency_mask"]
 
                     entropy_coeff = self.config.entropy_coeff
                     loss_agg_mode = self.config.loss_agg_mode
