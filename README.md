@@ -51,6 +51,13 @@ conda activate verl
 cd verl/
 USE_MEGATRON=0 bash scripts/install_vllm_sglang_mcore.sh
 pip install math-verify
+
+pip install 'transformers>=4.57.3,<4.58'
+python3 -c "
+from transformers import DeepseekV2Config, MistralForSequenceClassification
+import verl.trainer.main_ppo
+print('OK')
+"
 ```
 
 And we use [LlamaFactory](https://github.com/hiyouga/LLaMA-Factory) (v0.9.5) for SFT training. To prepare the environment for SFT:

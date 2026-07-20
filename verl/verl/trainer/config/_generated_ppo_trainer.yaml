@@ -69,6 +69,9 @@ actor_rollout_ref:
     kl_loss_type: low_var_kl
     ppo_epochs: 1
     shuffle: false
+    eopd_enable: false
+    eopd_entropy_threshold: 0.8
+    eopd_fkl_coef: 1.0
     checkpoint:
       _target_: verl.trainer.config.CheckpointConfig
       save_contents:

@@ -2241,12 +2241,16 @@ class RayPPOTrainer:
                             import traceback
                             traceback.print_exc()
 
-                    # Pop unused keys to save memory before PPO update
+                    # Pop unused keys to save memory before PPO update.
+                    # When EOPD is enabled, the actor needs teacher_top_k_ids /
+                    # teacher_top_k_log_probs / teacher_entropy to compute the
+                    # entropy-aware forward KL term, so we keep them.
+                    eopd_enabled = bool(self.config.actor_rollout_ref.actor.get("eopd_enable", False))
                     keys_to_pop = [
                         "teacher_on_student_log_probs",
-                        "teacher_top_k_ids",
-                        "teacher_top_k_log_probs",
-                        "teacher_entropy",
+                        "teacher_top_k_ids" if not eopd_enabled else "__skip__teacher_top_k_ids",
+                        "teacher_top_k_log_probs" if not eopd_enabled else "__skip__teacher_top_k_log_probs",
+                        "teacher_entropy" if not eopd_enabled else "__skip__teacher_entropy",
                         "overlap_mask",
                         "teacher_in_student_mask",
                         "student_log_probs_on_teacher_ids",

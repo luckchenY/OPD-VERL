@@ -1,14 +1,20 @@
 #!/bin/bash
+# Entropy-Aware On-Policy Distillation (EOPD)
+# Implements: arXiv:2603.07079 "Entropy-Aware On-Policy Distillation of Language Models"
+#
+# Core idea: augment the standard OPD reverse-KL objective with a forward-KL
+# term on tokens where the teacher distribution has high entropy:
+#   L_EOPD_t = L_OPD_t + alpha * I[H_te_t > tau] * L_FKL_t
+# where L_FKL is approximated over the teacher's top-k tokens (renormalized).
+# Default hyperparameters from the paper: tau=0.8, alpha=1.0, k=16.
 
 set -x
 ray stop --force
 # Configure logging when running outside SBATCH.
 if [ -z "$SLURM_JOB_ID" ]; then
-    # Create the log directory and file for local runs.
     LOG_DIR=${LOG_DIR:-logs}
     mkdir -p "$LOG_DIR"
     LOG_FILE="${LOG_DIR}/run_$(date +%Y%m%d_%H%M%S).log"
-    # Mirror output to both terminal and log file.
     exec > >(tee -a "$LOG_FILE") 2>&1
     echo "=========================================="
     echo "Log file: $LOG_FILE"
@@ -17,36 +23,43 @@ if [ -z "$SLURM_JOB_ID" ]; then
 fi
 
 export RAY_memory_usage_threshold=0.99
-# export CUDA_LAUNCH_BLOCKING=1
-export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0,3,4,5,6,7}
+export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-5,6,7}
 export PYTHONUNBUFFERED=1
-export PROJECT_NAME='OPDqwen2.5distill-prefix' # TODO
+# Force HuggingFace / transformers to use local files only (no network access).
+# All models and datasets in this script are local paths, so offline mode is safe
+# and avoids LocalEntryNotFoundError when the Hub is unreachable.
+export HF_HUB_OFFLINE=${HF_HUB_OFFLINE:-1}
+export TRANSFORMERS_OFFLINE=${TRANSFORMERS_OFFLINE:-1}
+export HF_DATASETS_OFFLINE=${HF_DATASETS_OFFLINE:-1}
+export TOKENIZERS_PARALLELISM=true
+export PROJECT_NAME='OPDqwen2.5distill-eopd'
 export TORCH_NCCL_BLOCKING_WAIT=1
 export NCCL_TIMEOUT_SECONDS=7200
 export NCCL_TIMEOUT=7200
 export NCCL_P2P_DISABLE=${NCCL_P2P_DISABLE:-1}
-# export TORCH_DISTRIBUTED_DEBUG=INFO
 export ADV_ESTIMATOR=token_reward_direct
-# export ADV_ESTIMATOR=token_reward_direct_plus_grpo
-# export ADV_ESTIMATOR=token_grpo
-# export ADV_ESTIMATOR=grpo
-export GRPO_OUTCOME_WEIGHT=1.0
 
-# DeepMath-103K
+# ---- EOPD hyperparameters (paper defaults) ----
+export EOPD_ENABLE=${EOPD_ENABLE:-True}
+export EOPD_ENTROPY_THRESHOLD=${EOPD_ENTROPY_THRESHOLD:-0.8}   # tau
+export EOPD_FKL_COEF=${EOPD_FKL_COEF:-1.0}                      # alpha
+# k for forward KL == teacher top-k used by the OPD rollout (LOG_PROB_TOP_K)
+
+# DeepMath-103K / DAPO-Math-17k
 export MAX_PROMPT_LENGTH=${MAX_PROMPT_LENGTH:-1024}
-export MAX_RESP_LENGTH=${MAX_RESP_LENGTH:-7168}  # TODO: 31744 /15360 / 7168 / 3072 / 5120
-export MAX_VAL_RESP_LENGTH=${MAX_VAL_RESP_LENGTH:-7168} # TODO: 15360 / 7168 / 3072
+export MAX_RESP_LENGTH=${MAX_RESP_LENGTH:-7168}
+export MAX_VAL_RESP_LENGTH=${MAX_VAL_RESP_LENGTH:-7168}
 export MAX_MODEL_LEN=$((MAX_RESP_LENGTH + MAX_PROMPT_LENGTH > MAX_VAL_RESP_LENGTH + MAX_PROMPT_LENGTH ? MAX_RESP_LENGTH + MAX_PROMPT_LENGTH : MAX_VAL_RESP_LENGTH + MAX_PROMPT_LENGTH ))
-export MINI_BATCH_SIZE=${MINI_BATCH_SIZE:-66} # TODO: 1 / 8 / 16 / 32 / 64 (default 64)
-export TEMPERATURE=${TEMPERATURE:-1.0} # TODO: 0.6 / 0.8 / 1.0 / 1.2 (default 1.0)
-export TEACHER_TEMPERATURE=${TEACHER_TEMPERATURE:-1.0} # Teacher logits temperature (default 1.0, no scaling)
-export REPETITION_PENALTY=${REPETITION_PENALTY:-1.0} # TODO: 1.0 / 1.1 / 1.2 (default 1.0, no penalty)
-export N_RESPONSES=${N_RESPONSES:-4} # TODO: 4 / 8 / 16 / 32 (default: 8)
-export LOG_PROB_TOP_K=${LOG_PROB_TOP_K:-16} # 0 represents no top-k sampling
+export MINI_BATCH_SIZE=${MINI_BATCH_SIZE:-66}
+export TEMPERATURE=${TEMPERATURE:-1.0}
+export TEACHER_TEMPERATURE=${TEACHER_TEMPERATURE:-1.0}
+export REPETITION_PENALTY=${REPETITION_PENALTY:-1.0}
+export N_RESPONSES=${N_RESPONSES:-4}
+export LOG_PROB_TOP_K=${LOG_PROB_TOP_K:-16}  # paper: k=16
 export ROLLOUT_CALCULATE_LOG_PROBS=${ROLLOUT_CALCULATE_LOG_PROBS:-False}
-export TOP_K_STRATEGY=${TOP_K_STRATEGY:-"only_stu"} # "only_stu" or "only_tch" or "intersection" or "union" or "union-intersection"
-export REWARD_WEIGHT_MODE=${REWARD_WEIGHT_MODE:-"student_p"} # "student_p" or "teacher_p" or "none"
-export OPD_CONSISTENCY_ENABLE=${OPD_CONSISTENCY_ENABLE:-True}
+export TOP_K_STRATEGY=${TOP_K_STRATEGY:-"only_stu"}
+export REWARD_WEIGHT_MODE=${REWARD_WEIGHT_MODE:-"student_p"}
+export OPD_CONSISTENCY_ENABLE=${OPD_CONSISTENCY_ENABLE:-False}
 export OPD_CONSISTENCY_TOP_PERCENT_RESPONSES=${OPD_CONSISTENCY_TOP_PERCENT_RESPONSES:-100}
 export OPD_CONSISTENCY_MASK_TOP_PERCENT_SEGMENTS=${OPD_CONSISTENCY_MASK_TOP_PERCENT_SEGMENTS:-30}
 export OPD_CONSISTENCY_MIN_SEGMENTS=${OPD_CONSISTENCY_MIN_SEGMENTS:-3}
@@ -61,93 +74,35 @@ export OPD_PROCESS_REWARD_MAX_TOKENS=${OPD_PROCESS_REWARD_MAX_TOKENS:-300}
 export OPD_PROCESS_REWARD_MAX_PROMPT_LENGTH=${OPD_PROCESS_REWARD_MAX_PROMPT_LENGTH:-8192}
 export OPD_PROCESS_REWARD_MAX_TOTAL_LENGTH=${OPD_PROCESS_REWARD_MAX_TOTAL_LENGTH:-8192}
 export OPD_PROCESS_REWARD_BATCH_SIZE=${OPD_PROCESS_REWARD_BATCH_SIZE:-64}
-export GPU_MEMORY_UTILIZATION=${GPU_MEMORY_UTILIZATION:-0.5}
+export GPU_MEMORY_UTILIZATION=${GPU_MEMORY_UTILIZATION:-0.3}
 export ACTOR_PPO_MICRO_BATCH_SIZE_PER_GPU=${ACTOR_PPO_MICRO_BATCH_SIZE_PER_GPU:-1}
-# export LR=${LR:-1e-6}
-# export LR_SCHEDULER=${LR_SCHEDULER:-constant}
-export USE_KL=${USE_KL:-False} # TODO: True / False (default False)
+export USE_KL=${USE_KL:-False}
 export ENABLE_FORMAT_REWARD=${ENABLE_FORMAT_REWARD:-False}
 export REWARD_MODEL_PARAM_OFFLOAD=${REWARD_MODEL_PARAM_OFFLOAD:-False}
 export ACTOR_OPTIMIZER_OFFLOAD=${ACTOR_OPTIMIZER_OFFLOAD:-False}
-export MODEL_DTYPE=${MODEL_DTYPE:-bf16} # actor/ref/critic fsdp_config.model_dtype: fp32 or bfloat16
-export IS_PLOT=${IS_PLOT:-Flase} # TODO: True / False (default False)
-export LOSS_AGG_MODE=${LOSS_AGG_MODE:-"token-mean"} # TODO: "token-mean" / "seq-mean-token-sum" / "seq-mean-token-mean" / "seq-mean-token-sum-norm" (default "token-mean")
+export MODEL_DTYPE=${MODEL_DTYPE:-bf16}
+export IS_PLOT=${IS_PLOT:-False}
+export LOSS_AGG_MODE=${LOSS_AGG_MODE:-"token-mean"}
 
-# TODO: qwen3_1p7b_base / qwen3_1p7b / llama31_8b_base / llama31_8b_inst / qwen3_8b_base / qwen3_8b / qwen25_1p5b_base / qwen25_1p5b_inst / qwen25_7b_base / qwen25_7b_inst / qwen25_math_7b_base / qwen25_math_7b_inst / qwen25_math_1p5b_base / qwen25_math_1p5b_inst / distill_r1_1p5b / olmo2_1124_7b_base / olmo2_1124_7b_sft / olmo2_1124_7b_inst / llama32_3b_inst
-# export EXPERIMENT_NAME=grpo_${TASK}_llama31_tulu3_8b_sft_8k-T_${TEMPERATURE}-n_${N_RESPONSES}-kl_${USE_KL}-mbs_${MINI_BATCH_SIZE}-${REWARD_TYPE}-$(date +%Y-%m-%d_%H-%M-%S)
 export PROJECT_ROOT=/data/chenyang/OPD
 export TRAIN_DATASET=$PROJECT_ROOT/datasets/dapo-math-17k-processed.parquet
 export TEST_DATA_DIR=$PROJECT_ROOT/datasets/test_data
 export PROJECT_PATH=$PROJECT_ROOT/checkpoint
-# export TRAIN_DATASET=datasets/DAPO-Math-17k/data/dapo-math-17k-10percent.parquet
-# export TRAIN_DATASET=datasets/OpenThoughts3_opd.parquet
-# export TRAIN_DATASET=datasets/OpenThoughts3-1.2M/sampled_complement_30k.parquet
-# export TRAIN_DATASET=datasets/DeepMath-103K/verl_format/train_filtered_sampled.parquet
-# export TRAIN_DATASET=${TRAIN_DATASET:-datasets/OpenThought3-Qwen3-4B/verl_train_with_gt.parquet}
-# export TRAIN_DATASET=datasets/Skywork-OR1-RL-Data/data/math-00000-of-00001.parquet
-# export TRAIN_DATASET=datasets/Skywork-OR1-RL-Data/filtered/math-1p5b-filtered-diff-max8.parquet
-# export TRAIN_DATASET=datasets/DAPO-Math-17k-Processed/DAPO-Math.parquet
-# export TRAIN_DATASET=datasets/skywork/train_7b_math.parquet
-# export TRAIN_DATASET=datasets/DAPO-Math-17k-Processed/DAPO-Math_part2.parquet
-# export TRAIN_DATASET=datasets/OpenThoughts3-1.2M/verl_format/train.parquet
 export TRAIN_DATASET_NAME=${TRAIN_DATASET_NAME:-DAPO}
 export TRAIN_MAX_SAMPLES=${TRAIN_MAX_SAMPLES:--1}
-# export TRAIN_DATASET_NAME=POLARIS-4B-S1
-# export TRAIN_DATASET_NAME=Skywork-OR1-RL-Data
-# export TRAIN_DATASET_NAME=DAPO-Math-17k-1percent
-# export TRAIN_DATASET_NAME=DeepMath-103K-filtered-sampled
-# export TRAIN_DATASET_NAME=DAPO-Math-17k-10percent
-# export TRAIN_DATASET_NAME=OpenThoughts3-1.2M-opd
-# export TRAIN_DATASET_NAME=OpenThoughts3-1.2M-30k
 
-export TEST_DATA_DIR=$PROJECT_ROOT/datasets/test_data
-# TRAIN_DATASET=${TRAIN_FILE:-["$DATA_DIR/$TASK/train_${SAMPLE_SIZE}.parquet"]}
 TEST_DATASET=${TEST_FILE:-["$TEST_DATA_DIR/AIME25/test.parquet", "$TEST_DATA_DIR/AMC23/test.parquet", "$TEST_DATA_DIR/AIME24/test.parquet"]}
-# TEST_DATASET=${TEST_FILE:-["$TEST_DATA_DIR/AIME24/test.parquet"]}
-# TEST_DATASET=${TEST_FILE:-["$DATA_DIR/AIME24/test.parquet","$DATA_DIR/AIME25/test.parquet","$DATA_DIR/AMC23/test.parquet","$DATA_DIR/MATH-500/test.parquet","$DATA_DIR/Minerva/test.parquet","$DATA_DIR/Olympiad-Bench/test.parquet"]}
 
-# TODO:
-# export ACTOR_MODEL_PATH=model/qwen3-1.7b-math-sft
-# export ACTOR_MODEL_PATH=model/DS-1.5B-sft
-# export ACTOR_MODEL_PATH=model/DS-1.5B-sft-skywork
-# export ACTOR_MODEL_PATH=model/DS-1.5B-sft-ds-7b
-# export ACTOR_MODEL_PATH=/workspace/model/Qwen3-1.7B-SFT-DAPO-4B-RL
-# export ACTOR_MODEL_PATH=/workspace/model/Qwen3-1.7B-SFT-DAPO-4B
-# export ACTOR_MODEL_PATH=model/Qwen2.5-Math-1.5B
 export ACTOR_MODEL_PATH=/data/chenyang/models/DeepSeek-R1-Distill-Qwen-1.5B
-# export ACTOR_MODEL_PATH=model/JustRL-DeepSeek-1.5B-step_0400
-# export ACTOR_MODEL_PATH=model/JustRL-DeepSeek-1.5B
-# export ACTOR_MODEL_PATH=model/Qwen3-1.7B-SFT
-# export ACTOR_MODEL_PATH=model/Qwen3-1.7B-Base-SFT-OpenThought3-4B/checkpoint-1800
-# export ACTOR_MODEL_PATH=model/Qwen3-1.7B-Base
-# export ACTOR_MODEL_PATH=model/Qwen3-1.7B
-# export ACTOR_MODEL_PATH=model/Qwen3-1.7B-Base-SFT-DeepMath-4B
-# export ACTOR_MODEL_PATH=model/Qwen3-1.7B-sft/checkpoint-6000
-# export ACTOR_MODEL_PATH=model/DeepSeek-R1-Distill-Qwen-7B
-# export ACTOR_MODEL_PATH=model/DS-1.5B-SFT
 export ACTOR_MODEL_NAME=$(basename "$ACTOR_MODEL_PATH")
-# export REWARD_MODEL_PATH=model/Qwen3-4B
-# export REWARD_MODEL_PATH=model/Qwen3-4B-grpo
-# export REWARD_MODEL_PATH=model/Qwen3-1.7B
-# export REWARD_MODEL_PATH=model/OpenMath-Nemotron-1.5B
-# export REWARD_MODEL_PATH=model/DeepSeek-R1-Distill-Qwen-7B
-# export REWARD_MODEL_PATH=model/Qwen3-4B-Non-Thinking-RL-Math
-# export REWARD_MODEL_PATH=model/Skywork-OR1-Math-7B
-# export REWARD_MODEL_PATH=model/Polaris-4B-Preview
-# export REWARD_MODEL_PATH=model/DeepSeek-R1-Distill-Qwen-14B
 export REWARD_MODEL_PATH=/data/chenyang/models/JustRL-1.5B
 export REWARD_MODEL_NAME=$(basename "$REWARD_MODEL_PATH")
 
 export PROJECT_PATH=/data/chenyang/OPD/checkpoint
 export PARALLEL_SIZE=1
-_RUN_NAME_SUFFIX=${ADV_ESTIMATOR}_${TRAIN_DATASET_NAME}_${ACTOR_MODEL_NAME}_${REWARD_MODEL_NAME}_${MAX_RESP_LENGTH}-T_${TEMPERATURE}-Tch_${TEACHER_TEMPERATURE}-n_${N_RESPONSES}-mbs_${MINI_BATCH_SIZE}-topk_${LOG_PROB_TOP_K}-topk_strategy_${TOP_K_STRATEGY}-rw_${REWARD_WEIGHT_MODE}
-# Resume mode: "auto" / "disable" / "resume_path"
-# "disable": start from scratch using ACTOR_MODEL_PATH only as model weights (default for retraining)
-# "auto": resume from the latest checkpoint in default_local_dir
-# "resume_path": resume from RESUME_CKPT_DIR
+_RUN_NAME_SUFFIX=eopd_${ADV_ESTIMATOR}_${TRAIN_DATASET_NAME}_${ACTOR_MODEL_NAME}_${REWARD_MODEL_NAME}_${MAX_RESP_LENGTH}-T_${TEMPERATURE}-Tch_${TEACHER_TEMPERATURE}-n_${N_RESPONSES}-mbs_${MINI_BATCH_SIZE}-topk_${LOG_PROB_TOP_K}-topk_strategy_${TOP_K_STRATEGY}-rw_${REWARD_WEIGHT_MODE}-tau_${EOPD_ENTROPY_THRESHOLD}-alpha_${EOPD_FKL_COEF}
 export RESUME_MODE=${RESUME_MODE:-disable}
 
-# Resume from an existing run: export RESUME_CKPT_DIR=checkpoint/<run_dir>
 if [ -n "$RESUME_CKPT_DIR" ]; then
     export CKPT_PATH="$RESUME_CKPT_DIR"
     export EXPERIMENT_NAME=$(basename "$RESUME_CKPT_DIR")
@@ -158,20 +113,15 @@ else
     _TS=$(date +%Y-%m-%d_%H-%M-%S)
     export CKPT_PATH=${PROJECT_PATH}/${_RUN_NAME_SUFFIX}-${_TS}
     export EXPERIMENT_NAME=${_RUN_NAME_SUFFIX}-${_TS}
-    echo "Starting new training run: $CKPT_PATH"
+    echo "Starting new EOPD training run: $CKPT_PATH"
 fi
 
-# Build resume arguments for the trainer
 RESUME_ARGS="trainer.resume_mode=$RESUME_MODE"
 if [ "$RESUME_MODE" = "resume_path" ]; then
     RESUME_ARGS="$RESUME_ARGS trainer.resume_from_path=$RESUME_FROM_PATH"
 fi
 export OUTLINES_CACHE_DIR=~/.cache/outlines/$(uuidgen)
 export NCCL_DEBUG=WARN
-
-# export VLLM_ATTENTION_BACKEND=XFORMERS
-# export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-export TOKENIZERS_PARALLELISM=true
 export SWANLAB_LOG_DIR=${PROJECT_PATH}/swanlab_log
 export HYDRA_FULL_ERROR=1
 export WANDB_API_KEY="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"
@@ -194,8 +144,7 @@ fi
 export PPO_MAX_TOKEN_LEN_PER_GPU=8192
 echo "PPO_MAX_TOKEN_LEN_PER_GPU: $PPO_MAX_TOKEN_LEN_PER_GPU"
 
-
-ray start --head
+ray start
 sleep 5
 
 python3 -m verl.trainer.main_ppo \
@@ -230,6 +179,9 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.actor.fsdp_config.optimizer_offload=$ACTOR_OPTIMIZER_OFFLOAD \
     actor_rollout_ref.actor.fsdp_config.forward_prefetch=True \
     actor_rollout_ref.actor.fsdp_config.model_dtype=$MODEL_DTYPE \
+    actor_rollout_ref.actor.eopd_enable=$EOPD_ENABLE \
+    actor_rollout_ref.actor.eopd_entropy_threshold=$EOPD_ENTROPY_THRESHOLD \
+    actor_rollout_ref.actor.eopd_fkl_coef=$EOPD_FKL_COEF \
     actor_rollout_ref.rollout.max_num_batched_tokens=$PPO_MAX_TOKEN_LEN_PER_GPU \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     actor_rollout_ref.ref.fsdp_config.model_dtype=$MODEL_DTYPE \
@@ -271,15 +223,14 @@ python3 -m verl.trainer.main_ppo \
     trainer.experiment_name=$EXPERIMENT_NAME \
     $RESUME_ARGS \
     trainer.validation_data_dir=validation_log/$EXPERIMENT_NAME \
-    trainer.n_gpus_per_node=6 \
+    trainer.n_gpus_per_node=3 \
     trainer.nnodes=1 \
     trainer.save_freq=50 \
     trainer.test_freq=50 \
     trainer.total_epochs=1 \
     trainer.default_local_dir="$CKPT_PATH" \
-    trainer.is_plot=$IS_PLOT \
+    trainer.is_plot=$IS_PLOT
 
-# Log the end time for local runs.
 if [ -z "$SLURM_JOB_ID" ]; then
     echo "=========================================="
     echo "End time: $(date)"

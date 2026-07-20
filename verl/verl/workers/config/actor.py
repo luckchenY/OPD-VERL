@@ -112,6 +112,14 @@ class ActorConfig(BaseConfig):
     kl_loss_type: str = "low_var_kl"
     ppo_epochs: int = 1
     shuffle: bool = False
+
+    # EOPD: Entropy-Aware On-Policy Distillation (arXiv:2603.07079).
+    # Adds a forward-KL term on tokens where teacher entropy exceeds tau.
+    # Requires teacher_top_k_ids / teacher_top_k_log_probs / teacher_entropy
+    # to be present in the batch (already produced by the OPD rollout path).
+    eopd_enable: bool = False
+    eopd_entropy_threshold: float = 0.8  # tau
+    eopd_fkl_coef: float = 1.0  # alpha
     checkpoint: CheckpointConfig = field(default_factory=CheckpointConfig)
     optim: OptimizerConfig = field(default_factory=OptimizerConfig)
     use_fused_kernels: bool = False

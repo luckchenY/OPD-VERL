@@ -93,6 +93,18 @@ ppo_epochs: 1
 # Shuffle training data across PPO epochs
 shuffle: false
 
+# EOPD: Entropy-Aware On-Policy Distillation (arXiv:2603.07079).
+# Adds a forward-KL term on tokens where teacher entropy exceeds tau.
+# Requires teacher_top_k_ids / teacher_top_k_log_probs / teacher_entropy
+# in the batch (produced by the OPD top-k rollout path).
+eopd_enable: false
+
+# Entropy threshold tau for activating the forward KL term.
+eopd_entropy_threshold: 0.8
+
+# Coefficient alpha for the forward KL term.
+eopd_fkl_coef: 1.0
+
 # checkpoint configs
 checkpoint:
 

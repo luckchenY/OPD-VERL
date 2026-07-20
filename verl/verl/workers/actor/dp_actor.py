@@ -85,14 +85,17 @@ class DataParallelPPOActor(BasePPOActor):
         self.device_name = get_device_name()
 
     def _forward_micro_batch(
-        self, micro_batch, temperature, calculate_entropy=False, top_k=0, student_top_k_ids=None
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        self, micro_batch, temperature, calculate_entropy=False, top_k=0, student_top_k_ids=None,
+        extra_target_ids=None,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Returns:
             entropy: # (bs, response_len)
             log_probs: # (bs, response_len)
             topk_ids: # (bs, response_len, k)
             topk_log_probs: # (bs, response_len, k)
+            extra_log_probs: # (bs, response_len, k_extra) log_probs of `extra_target_ids`
+                under the current student policy (with grad). None if extra_target_ids is None.
         """
         response_length = micro_batch["responses"].size(-1)
         debug_timing = os.getenv("OPD_DEBUG_TIMING", "False").lower() in ("1", "true", "yes")
@@ -113,6 +116,7 @@ class DataParallelPPOActor(BasePPOActor):
             entropy = None
             topk_ids = None
             topk_log_probs = None
+            extra_log_probs = None
             
             if position_ids.dim() == 3:  # qwen2vl mrope
                 position_ids = position_ids.transpose(0, 1)  # (bsz, 4, seqlen) -> (4, bsz, seqlen)
@@ -195,7 +199,7 @@ class DataParallelPPOActor(BasePPOActor):
                     torch.cuda.synchronize()
                     print(f"[opd_timing][rank{rank}] actor_forward={time.perf_counter() - t_model:.3f}s", flush=True)
                 
-                need_logits = top_k > 0
+                need_logits = top_k > 0 or extra_target_ids is not None
 
                 if self.use_fused_kernels and not need_logits:
                     log_probs = output.log_probs.squeeze(0)  # (total_nnz,)
@@ -208,6 +212,11 @@ class DataParallelPPOActor(BasePPOActor):
                     # if use_sp: ((total_nnz / sp) + pad) ; if not use_sp: (batch, seqlen)
                     inplace_backward = True
                     if calculate_entropy:
+                        inplace_backward = False
+                    # When gathering extra target log_probs (EOPD), we reuse logits
+                    # after this call, so we must not let logprobs_from_logits
+                    # mutate them in place.
+                    if extra_target_ids is not None:
                         inplace_backward = False
                     
                     need_topk = top_k > 0
@@ -288,6 +297,27 @@ class DataParallelPPOActor(BasePPOActor):
                             torch.cuda.synchronize()
                             print(f"[opd_timing][rank{rank}] topk_log_probs={time.perf_counter() - t_topk_logp:.3f}s", flush=True)
 
+                    # EOPD: gather student log_probs on an extra set of target ids
+                    # (typically the teacher's top-k tokens) from the same logits.
+                    if extra_target_ids is not None:
+                        k_extra = extra_target_ids.shape[-1]
+                        extra_ids = extra_target_ids
+                        if extra_ids.ndim == 3:
+                            if extra_ids.shape[1] != seqlen:
+                                full_extra_ids = torch.zeros(
+                                    (batch_size, seqlen, k_extra),
+                                    dtype=extra_ids.dtype, device=extra_ids.device,
+                                )
+                                full_extra_ids[:, -response_length - 1 : -1, :] = extra_ids
+                                extra_ids = full_extra_ids
+                            flat_extra = extra_ids.view(-1, k_extra)
+                            extra_ids_rmpad = flat_extra[indices]  # (total_nnz, k_extra)
+                        else:
+                            extra_ids_rmpad = extra_ids
+                        extra_logits = logits_rmpad.gather(dim=-1, index=extra_ids_rmpad)
+                        extra_log_normalizer = torch.logsumexp(logits_rmpad, dim=-1, keepdim=True)
+                        extra_log_probs = extra_logits - extra_log_normalizer
+
                 # gather log_prob if sp > 1
                 if self.use_ulysses_sp:
                     # gather and unpad for the ulysses sp
@@ -317,6 +347,13 @@ class DataParallelPPOActor(BasePPOActor):
                             unpad_dim=0,
                             padding_size=pad_size,
                          )
+                    if extra_log_probs is not None:
+                        extra_log_probs = gather_outputs_and_unpad(
+                            extra_log_probs,
+                            gather_dim=0,
+                            unpad_dim=0,
+                            padding_size=pad_size,
+                        )
                 # pad back to (bsz, seqlen)
                 if calculate_entropy:
                     full_entropy = pad_input(
@@ -345,6 +382,13 @@ class DataParallelPPOActor(BasePPOActor):
                         batch=batch_size,
                         seqlen=seqlen,
                     )
+                if extra_log_probs is not None:
+                    full_extra_log_probs = pad_input(
+                        hidden_states=extra_log_probs,
+                        indices=indices,
+                        batch=batch_size,
+                        seqlen=seqlen,
+                    )
 
                 # only return response part:
                 if calculate_entropy:
@@ -354,6 +398,8 @@ class DataParallelPPOActor(BasePPOActor):
                 if top_k > 0:
                     topk_ids = full_topk_ids[:, -response_length - 1 : -1, :]
                     topk_log_probs = full_topk_log_probs[:, -response_length - 1 : -1, :]
+                if extra_log_probs is not None:
+                    extra_log_probs = full_extra_log_probs[:, -response_length - 1 : -1, :]
 
             else:  # not using rmpad and no ulysses sp
                 extra_args = {}
@@ -370,7 +416,7 @@ class DataParallelPPOActor(BasePPOActor):
                     **extra_args,
                 )  # prevent model thinks we are generating
                 
-                need_logits = top_k > 0
+                need_logits = top_k > 0 or extra_target_ids is not None
                 if self.use_fused_kernels and not need_logits:
                     log_probs = output.log_probs[:, -response_length - 1 : -1]
                     entropy = output.entropy[:, -response_length - 1 : -1]  # (bsz, response_length)
@@ -382,7 +428,10 @@ class DataParallelPPOActor(BasePPOActor):
                     logits = logits[:, -response_length - 1 : -1, :]  # (bsz, response_length, vocab_size)
                     
                     need_topk = top_k > 0
-                    log_probs = logprobs_from_logits(logits, micro_batch["responses"])
+                    # When gathering extra target log_probs (EOPD), avoid in-place
+                    # backward so logits remain valid for the extra gather's autograd.
+                    _logp_inplace = not (extra_target_ids is not None)
+                    log_probs = logprobs_from_logits(logits, micro_batch["responses"], inplace_backward=_logp_inplace)
                     
                     if calculate_entropy:
                         if not self.config.entropy_checkpointing:
@@ -402,7 +451,14 @@ class DataParallelPPOActor(BasePPOActor):
                         log_normalizer = torch.logsumexp(logits, dim=-1, keepdim=True)
                         topk_log_probs = topk_logits - log_normalizer
 
-            return entropy, log_probs, topk_ids, topk_log_probs
+                    # EOPD: gather student log_probs on extra target ids (non-rmpad path)
+                    if extra_target_ids is not None:
+                        extra_ids = extra_target_ids
+                        extra_logits = logits.gather(dim=-1, index=extra_ids)
+                        extra_log_normalizer = torch.logsumexp(logits, dim=-1, keepdim=True)
+                        extra_log_probs = extra_logits - extra_log_normalizer
+
+            return entropy, log_probs, topk_ids, topk_log_probs, extra_log_probs
 
     @GPUMemoryLogger(role="dp actor", logger=logger)
     def compute_log_probs_for_ids(self, data: DataProto) -> torch.Tensor:
@@ -442,7 +498,7 @@ class DataParallelPPOActor(BasePPOActor):
             mb_target_ids = model_inputs["target_ids"]
             with torch.no_grad():
                 # We reuse _forward_micro_batch. It returns (entropy, log_probs, topk_ids, topk_log_probs)
-                _, _, _, topk_log_probs = self._forward_micro_batch(
+                _, _, _, topk_log_probs, _ = self._forward_micro_batch(
                     model_inputs, temperature=temperature, calculate_entropy=False, 
                     top_k=top_k, student_top_k_ids=mb_target_ids
                 )
@@ -505,7 +561,7 @@ class DataParallelPPOActor(BasePPOActor):
                 model_inputs = {**micro_batch.batch, **micro_batch.non_tensor_batch}
                 mb_target_ids = model_inputs["teacher_top_k_ids"]
                 with torch.no_grad():
-                    _, _, _, topk_log_probs = self._forward_micro_batch(
+                    _, _, _, topk_log_probs, _ = self._forward_micro_batch(
                         model_inputs, temperature=temperature, calculate_entropy=False, 
                         top_k=top_k, student_top_k_ids=mb_target_ids
                     )
@@ -711,7 +767,7 @@ class DataParallelPPOActor(BasePPOActor):
             model_inputs = {**micro_batch.batch, **micro_batch.non_tensor_batch}
             t1 = time.perf_counter()
             with torch.no_grad():
-                entropy, log_probs, topk_ids, topk_log_probs = self._forward_micro_batch(
+                entropy, log_probs, topk_ids, topk_log_probs, _ = self._forward_micro_batch(
                     model_inputs, temperature=temperature, calculate_entropy=calculate_entropy, top_k=top_k
                 )
             if debug_timing and rank == 0:
@@ -810,6 +866,22 @@ class DataParallelPPOActor(BasePPOActor):
         if "opd_consistency_mask" in data.batch.keys():
             select_keys.append("opd_consistency_mask")
 
+        # EOPD: Entropy-Aware On-Policy Distillation. When enabled, we need the
+        # teacher's top-k ids/log_probs (renormalized over top-k for the FKL
+        # target) and the teacher's per-token entropy (for the high-entropy
+        # gate I[H_te > tau]).
+        eopd_enabled = bool(getattr(self.config, "eopd_enable", False))
+        if eopd_enabled:
+            assert "teacher_top_k_ids" in data.batch.keys(), \
+                "EOPD requires teacher_top_k_ids in the batch (enable OPD top-k rollout)"
+            assert "teacher_top_k_log_probs" in data.batch.keys(), \
+                "EOPD requires teacher_top_k_log_probs in the batch"
+            assert "teacher_entropy" in data.batch.keys(), \
+                "EOPD requires teacher_entropy in the batch"
+            select_keys.append("teacher_top_k_ids")
+            select_keys.append("teacher_top_k_log_probs")
+            select_keys.append("teacher_entropy")
+
         has_multi_modal_inputs = "multi_modal_inputs" in data.non_tensor_batch.keys()
         non_tensor_select_keys = ["multi_modal_inputs"] if has_multi_modal_inputs else []
 
@@ -871,6 +943,7 @@ class DataParallelPPOActor(BasePPOActor):
                     
                     # Check if we have 3D advantages (top-k sampling case)
                     # If so, we need to recompute top-k log probs for correct gradient
+                    eopd_extra_ids = model_inputs.get("teacher_top_k_ids") if eopd_enabled else None
                     if advantages.dim() == 3:
                         top_k = advantages.shape[-1]
                         # For union strategy, use union_top_k_ids; otherwise use student_top_k_ids
@@ -880,15 +953,17 @@ class DataParallelPPOActor(BasePPOActor):
                         elif "student_top_k_ids" in model_inputs:
                             student_top_k_ids = model_inputs["student_top_k_ids"]
 
-                        entropy, _, _, topk_log_probs = self._forward_micro_batch(
+                        entropy, _, _, topk_log_probs, eopd_log_probs = self._forward_micro_batch(
                             model_inputs, temperature=temperature, calculate_entropy=calculate_entropy,
-                            top_k=top_k, student_top_k_ids=student_top_k_ids
+                            top_k=top_k, student_top_k_ids=student_top_k_ids,
+                            extra_target_ids=eopd_extra_ids,
                         )
                         log_prob_for_loss = topk_log_probs
                         
                     else:
-                        _, log_prob, *_ = self._forward_micro_batch(
-                            model_inputs, temperature=temperature, calculate_entropy=calculate_entropy
+                        _, log_prob, _, _, eopd_log_probs = self._forward_micro_batch(
+                            model_inputs, temperature=temperature, calculate_entropy=calculate_entropy,
+                            extra_target_ids=eopd_extra_ids,
                         )
                         log_prob_for_loss = log_prob
 
@@ -949,6 +1024,39 @@ class DataParallelPPOActor(BasePPOActor):
                     )
                     micro_batch_metrics.update(pg_metrics)
 
+                    # EOPD: add entropy-aware forward KL on high-entropy teacher tokens.
+                    # L_EOPD = L_OPD + alpha * I[H_te > tau] * L_FKL
+                    # L_FKL_t ~= sum_{x in S^k_t} pi_te_tilde(x) * log(pi_te_tilde(x) / pi_theta(x))
+                    eopd_fkl_loss = None
+                    if eopd_enabled and eopd_log_probs is not None:
+                        T_logp = model_inputs["teacher_top_k_log_probs"]  # (bsz, resp_len, K)
+                        H_te = model_inputs["teacher_entropy"]  # (bsz, resp_len)
+                        # Renormalize teacher over its top-k: pi_te_tilde = softmax(T_logp, dim=-1)
+                        T_tilde_logp = T_logp - torch.logsumexp(T_logp, dim=-1, keepdim=True)
+                        T_tilde = torch.exp(T_tilde_logp)
+                        # Student log_probs on the SAME teacher top-k tokens (with grad)
+                        S_on_T = eopd_log_probs  # (bsz, resp_len, K)
+                        # Per-token forward KL (nats)
+                        fkl_per_token = (T_tilde * (T_tilde_logp - S_on_T)).sum(dim=-1)  # (bsz, resp_len)
+                        # High-entropy gate
+                        tau = float(getattr(self.config, "eopd_entropy_threshold", 0.8))
+                        high_ent_mask = (H_te > tau).to(fkl_per_token.dtype)  # (bsz, resp_len)
+                        fkl_loss_mat = fkl_per_token * high_ent_mask
+                        # Normalize over all valid response tokens (indicator is inside fkl_loss_mat)
+                        eopd_fkl_loss = agg_loss(
+                            loss_mat=fkl_loss_mat, loss_mask=response_mask, loss_agg_mode=loss_agg_mode
+                        )
+                        alpha = float(getattr(self.config, "eopd_fkl_coef", 1.0))
+                        # Metrics
+                        with torch.no_grad():
+                            high_ent_ratio = verl_F.masked_mean(
+                                high_ent_mask, response_mask
+                            ).detach().item()
+                        micro_batch_metrics["actor/eopd_fkl_loss"] = eopd_fkl_loss.detach().item() * loss_scale_factor
+                        micro_batch_metrics["actor/eopd_high_ent_ratio"] = high_ent_ratio
+                        micro_batch_metrics["actor/eopd_tau"] = tau
+                        micro_batch_metrics["actor/eopd_alpha"] = alpha
+
                     if entropy_coeff != 0:
                         entropy_loss = agg_loss(loss_mat=entropy, loss_mask=response_mask, loss_agg_mode=loss_agg_mode)
 
@@ -968,6 +1076,12 @@ class DataParallelPPOActor(BasePPOActor):
                         policy_loss = policy_loss + kl_loss * self.config.kl_loss_coef
                         micro_batch_metrics["actor/kl_loss"] = kl_loss.detach().item() * loss_scale_factor
                         micro_batch_metrics["actor/kl_coef"] = self.config.kl_loss_coef
+
+                    # EOPD: add the entropy-aware forward KL term to the final
+                    # policy loss. Done after entropy/KL terms so alpha weights
+                    # the FKL relative to the fully assembled reverse-KL loss.
+                    if eopd_enabled and eopd_fkl_loss is not None:
+                        policy_loss = policy_loss + alpha * eopd_fkl_loss
 
                     if self.config.use_dynamic_bsz:
                         # relative to the dynamic bsz
