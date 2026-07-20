@@ -351,12 +351,31 @@ def _get_raw_prompt(batch: Any, item_idx: int) -> list[dict[str, Any]] | None:
     return None
 
 
+def _close_open_think_tag(prefix: str) -> str:
+    """Close a dangling ``<think>`` block in a truncated response prefix.
+
+    Segment cuts land inside the model's own ``<think>...</think>`` reasoning
+    block far more often than not (the trigger words used for segmentation --
+    "wait", "actually", etc. -- are reasoning-phase words). Appending the eval
+    instruction straight after an unclosed ``<think>`` leaves the continuation
+    model still in "thinking" mode, so it tends to treat the instruction as
+    more reasoning to mull over instead of a hard signal to commit to a final
+    answer -- and can blow through the PR-eval token budget before ever
+    emitting \\boxed{}. Closing the tag first gives it the same mode-switch
+    cue it was trained to produce on its own.
+    """
+    if prefix.count("<think>") > prefix.count("</think>"):
+        return prefix.rstrip("\n") + "\n</think>\n\n"
+    return prefix
+
+
 def _build_prefix_prompt(tokenizer: Any, raw_prompt: list[dict[str, Any]] | None, response_prefix: str) -> str:
     if raw_prompt:
         prompt = tokenizer.apply_chat_template(raw_prompt, add_generation_prompt=True, tokenize=False)
     else:
         prompt = ""
-    return prompt + (response_prefix or "") + EPISODE_EVAL_SUFFIX
+    prefix = _close_open_think_tag(response_prefix or "")
+    return prompt + prefix + EPISODE_EVAL_SUFFIX
 
 
 def _load_raw_reward_fn(config: Any):

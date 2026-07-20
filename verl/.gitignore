@@ -120,6 +120,9 @@ ENV/
 # data
 *.parquet
 
+# build artifacts (wheels can exceed GitHub's 100MB per-file limit)
+*.whl
+
 
 # local logs
 logs
